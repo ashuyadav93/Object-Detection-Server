@@ -7,7 +7,8 @@ from PIL import Image
 from models.research.object_detection.utils import label_map_util
 from flask import Flask, request
 from models.research.object_detection.utils import visualization_utils as vis_util
-import json
+import json, time
+import base64
 
 app = Flask(__name__)
 
@@ -31,7 +32,7 @@ categories = label_map_util.convert_label_map_to_categories(label_map, max_num_c
 category_index = label_map_util.create_category_index(categories)
 
 PATH_TO_TEST_IMAGES_DIR = 'test_images'
-TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, 'akshat.jpg'.format(i)) for i in range(1, 3) ]
+TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, 'abc.png'.format(i)) for i in range(1, 3) ]
 
 # Size, in inches, of the output images.
 IMAGE_SIZE = (12, 8)
@@ -55,10 +56,15 @@ def load_image_into_numpy_array(image):
   return np.array(image.getdata()).reshape(
       (im_height, im_width, 3)).astype(np.uint8)
 
-@app.route('/api/predict')
+@app.route('/api/predict', methods=['POST'])
 def detect_object():
-	# data = request.data.decode("utf-8")
+	start = time.time()
+	data = request.data.decode("utf-8")
 	# params = json.loads(data)
+	imgdata = base64.b64decode(data)
+
+	with open('/Users/ashishyadav/oshw/test_images/abc.png', 'wb') as file:
+		file.write(imgdata)
 	detection_graph = tf.Graph()
 	with detection_graph.as_default():
 	    od_graph_def = tf.GraphDef()
@@ -97,21 +103,30 @@ def detect_object():
 	          category_index,
 	          use_normalized_coordinates=True,
 	          line_thickness=8)
-	      # plt.figure(figsize=IMAGE_SIZE)
-	      # plt.imshow(image_np)
-	      # json_data =  json.dumps({'image': image_np.tolist()})
+	      
+	      #json_data =  json.dumps({'image': image_np.tolist()})
 
 	      # with open('/Users/ashishyadav/Desktop/out.txt', 'w') as outfile:
 	      # 	json.dump(json_data, outfile)
 
-	      return json_data
+	      #return json_data
 	      im = Image.fromarray(image_np)
-	      im.save("result.jpeg") 
+	      im.save("result.png")
+	      with open("result.png", "rb") as image_file:
+	          encoded_string = base64.b64encode(image_file.read())
+	          print (type(image_file.read()))
+	      print (time.time() - start)
+
+	      return encoded_string
+	      # data = base64.b64encode(im.tobytes())
+	      # return data
+	      # with open('/Users/ashishyadav/oshw/test_images/def.png', 'wb') as file:
+	      #    file.write(imdata)
 
 
 if __name__ == "__main__":
 	# detect_object()
-	app.run(debug=True)
+	app.run(debug=True, host= '0.0.0.0')
 	
 
 
